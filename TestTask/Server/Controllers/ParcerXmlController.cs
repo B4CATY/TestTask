@@ -1,11 +1,16 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ParcerLibrarry;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using TestTask.Server.Data;
+using TestTask.Server.Helpers;
 using TestTask.Server.Repositories;
 using TestTask.Shared;
+using TestTask.Shared.Pagination;
 
 namespace TestTask.Server.Controllers
 {
@@ -14,15 +19,18 @@ namespace TestTask.Server.Controllers
     public class ParcerXmlController : ControllerBase
     {
         private readonly IParcerXmlRepository _parcerXmlRepository;
-        public ParcerXmlController(IParcerXmlRepository parcerXmlRepository)
+        private readonly ParcerContext _context;
+        public ParcerXmlController(IParcerXmlRepository parcerXmlRepository, ParcerContext context)
         {
             _parcerXmlRepository = parcerXmlRepository;
+            _context = context;
         }
 
         [HttpGet]
+        [Route("links")]
         public IActionResult Get()
         {
-            var links = _parcerXmlRepository.Get();
+            var links = _parcerXmlRepository.GetAsync();
             if(links == null)
                 return NoContent();
 
@@ -31,14 +39,34 @@ namespace TestTask.Server.Controllers
 
 
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        [HttpGet]
+        public async Task<IActionResult> GetById([FromQuery] PaginationDTO model)
         {
-            var link = await _parcerXmlRepository.GetById(id);
-            if(link == null)
-                return NotFound();
+            if(model == null) 
+                return BadRequest();
+            try
+            {
+                var queryable = _context.ParcedLinks.Select(x => x).Where(x => x.LinkId == model.Id).AsQueryable();
 
-            return Ok(link);
+
+               
+                /*var links = await _parcerXmlRepository.GetByIdAsync(model);*/
+                if (queryable == null)
+                    return NotFound();
+
+                await HttpContext.InsertPaginationParametrInResponse(queryable, model.PageSize);
+                var resultLinks = await queryable.Paginate(model).ToListAsync();
+
+                return Ok(resultLinks);
+            }
+            catch (ArgumentNullException)
+            {
+                return NotFound();
+            }
+            catch (Exception)
+            {
+                return BadRequest();
+            }
         }
 
 
@@ -46,20 +74,16 @@ namespace TestTask.Server.Controllers
         public async Task<IActionResult> Parce(LinkModel model)
         {
             if(model == null || String.IsNullOrEmpty(model.Link)) 
-            {
-                ModelState.AddModelError("link", "link is empty");
-                return BadRequest(ModelState); 
-            }
+                return BadRequest(); 
 
             try
             {
-               var parceList = await _parcerXmlRepository.Parce(model.Link);
-               return Ok(parceList);
+               var parceList = await _parcerXmlRepository.ParceAsync(model.Link);
+               return Ok();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                ModelState.AddModelError("link", ex.Message);
-                return BadRequest(ModelState);
+                return BadRequest();
             }
         }
     }

@@ -1,0 +1,94 @@
+﻿@page "/parcer/xml/{id:int}"
+@inject IParcerXmlClientRepository repository
+@inject HttpClient http
+@inject IJSRuntime js
+@using System.IO
+@using System.Text.Json
+@using ParcerLibrarry;
+@using System.Collections.Generic;
+@using TestTask.Shared
+@using TestTask.Shared.Pagination
+@inject NavigationManager NavigationManager
+
+@if (parcedLinks == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+     <Pagination TotaPagesQuantity="totalPageQuantity" CurrentPage="currentPage" Radius="2"
+        SelectedPage="SelectedPage">
+    </Pagination> 
+    <table class="table col-sm-9 m-sm-3 align-content-center" >
+        <thead>
+            <tr class="text-center">
+                <th>Links</th>
+                <th>Time</th>
+            </tr>
+            <tr class="text-center">
+                <th style ="width: 500px">Max time: @parcedLinks.Max(x=>x.Time)</th>
+                <th style ="width: 200px">Min time: @parcedLinks.Min(x=>x.Time)</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+           @foreach (var parcedLink in parcedLinks)
+           {
+                <tr class="text-center" >
+
+                    <td style="position:relative; top:7px;">@parcedLink.Name</td>
+                    <td style="position:relative; top:7px;">@parcedLink.Time</td>
+                </tr>
+           }
+
+        </tbody>
+    </table>
+    <button class="btn btn-outline-secondary" style="position:relative; left:50px; width:100px;" @onclick="( () => NavigateToBack() )">Back</button>
+   
+}
+
+@code {
+
+    [Parameter]
+    public int Id { get; set; }
+
+    private int totalPageQuantity = 10;
+    private int currentPage = 1;
+
+    List<TestTask.Shared.ModelsDb.ParcedLink> parcedLinks;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await LoadParcedLinks();
+        Console.WriteLine("totalPageQuantity : " + totalPageQuantity);
+    }
+
+    private async Task SelectedPage(int page)
+    {
+        Console.WriteLine("before : " + page);
+        currentPage = page;
+        await LoadParcedLinks(page);
+    }
+
+    async Task LoadParcedLinks(int page = 1, int quantityPerPage = 10)
+    {
+        Console.WriteLine("after : " + page);
+        var httpResponse = await http.GetAsync($"ParcerXml?Id={Id}&Page={currentPage}&PageSize={quantityPerPage}");
+        if (httpResponse.IsSuccessStatusCode)
+        {
+            totalPageQuantity = int.Parse(httpResponse.Headers.GetValues("pagesQuantity").FirstOrDefault());
+            var responseString = await httpResponse.Content.ReadAsStringAsync();
+            parcedLinks = JsonSerializer.Deserialize<List<TestTask.Shared.ModelsDb.ParcedLink>>(responseString,
+                new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+        }
+        else
+        {
+            parcedLinks = null;
+        }
+        //parcedLinks = await repository.GetLinkByIdAsync(request);
+    }
+
+    void NavigateToBack() => NavigationManager.NavigateTo($"parcer/xml");
+
+}

@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using TestTask.Server.Models;
+using TestTask.Shared.ModelsDb;
 
 namespace TestTask.Server.Data
 {

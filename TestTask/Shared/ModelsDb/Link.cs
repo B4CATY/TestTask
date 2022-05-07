@@ -1,7 +1,10 @@
-﻿
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace TestTask.Server.Models
+namespace TestTask.Shared.ModelsDb
 {
     public class Link
     {

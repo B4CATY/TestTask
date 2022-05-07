@@ -1,11 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using ParcerLibrarry;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TestTask.Server.Data;
-using TestTask.Server.Models;
 using TestTask.Shared;
+using TestTask.Shared.ModelsDb;
+using TestTask.Shared.Pagination;
 
 namespace TestTask.Server.Repositories
 {
@@ -16,7 +18,7 @@ namespace TestTask.Server.Repositories
         {
             _context = context;
         }
-        public async Task<bool> Create(string url, List<LinkTime> linkTimes)
+        public async Task<bool> CreateAsync(string url, List<LinkTime> linkTimes)
         {
             var link = await _context.Links.FirstOrDefaultAsync(x => x.Name == url);
             if (link != null)
@@ -32,23 +34,48 @@ namespace TestTask.Server.Repositories
             return true;
         }
 
-        public List<LinkModel> Get()
+        public List<LinkModel> GetAsync()
         {
-            var links = _context.Links.Select(x => new LinkModel { Link = x.Name }).ToList();
+            var links = _context.Links.Select(x => new LinkModel { Link = x.Name, Id = x.Id }).ToList();
             return links;
         }
 
-        public async Task<Link> GetById(int id)
+        public IQueryable<ParcedLink> GetById(PaginationDTO model)
         {
-            return await _context.Links.Select(x=>x).Where(x=>x.Id == id).FirstOrDefaultAsync();
+            //var allLinksById = await _context.Links.Include(x => x.ParcedLinks).Where(x=> x.Id == model.Id).FirstOrDefaultAsync();
+            //num 1
+            //size 15
+            //take 15
+            /*int skipedLinks = (model.Page - 1) * model.PageSize;*/
+            var queryable = _context.ParcedLinks.Select(x=>x).Where(x => x.LinkId == model.Id).AsQueryable();
+
+
+           /* var parcedLinksByPage = await _context.ParcedLinks
+                .Select(x => x)
+                .Where(x => x.LinkId == model.Id)
+                .Skip(skipedLinks)
+                .Take(model.PageSize)
+                .ToListAsync();*/
+
+            /*if (parcedLinksByPage.Count == 0)
+                return null; */
+            if (queryable.Count() == 0)
+                return null;
+
+            return queryable;
+
+            /*if (allLinksById == null*//* || skipedLinks >= allLinksById.ParcedLinks.Count*//*)
+                return null;*/
+
+
         }
 
-        public async Task<List<LinkTime>> Parce(string url)
+        public async Task<List<LinkTime>> ParceAsync(string url)
         {
             var parceHashSet = await ParcerXmlFile.Parce(url);
             var parceList = CreaterListOfLinks.Create(parceHashSet);
             SorterLinkTime.Sort(ref parceList);
-            await Create(url, parceList);
+            await CreateAsync(url, parceList);
             return parceList;
         }
     }

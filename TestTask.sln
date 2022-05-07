@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32228.430
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTask.Server", "TestTask\Server\TestTask.Server.csproj", "{D7C7BDE9-1DAB-4143-A347-D18557410BD6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTask.Server", "TestTask\Server\TestTask.Server.csproj", "{D7C7BDE9-1DAB-4143-A347-D18557410BD6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTask.Client", "TestTask\Client\TestTask.Client.csproj", "{143CD48B-BD43-4203-BDD6-13FE4D62920B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTask.Client", "TestTask\Client\TestTask.Client.csproj", "{143CD48B-BD43-4203-BDD6-13FE4D62920B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestTask.Shared", "TestTask\Shared\TestTask.Shared.csproj", "{CB960A86-73AC-4BAE-9D34-8DCCA62B593F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTask.Shared", "TestTask\Shared\TestTask.Shared.csproj", "{CB960A86-73AC-4BAE-9D34-8DCCA62B593F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParcerLibrarry", "ParcerLibrarry\ParcerLibrarry.csproj", "{AB3C931E-DC69-4D28-BC41-8C1190260E19}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ParcerLibrarry", "ParcerLibrarry\ParcerLibrarry.csproj", "{AB3C931E-DC69-4D28-BC41-8C1190260E19}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
