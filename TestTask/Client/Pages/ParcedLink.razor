@@ -1,0 +1,195 @@
+﻿@page "/{id:int}"
+@using TestTask.Client.Repositories
+@inject IParcerXmlClientRepository repository
+@inject HttpClient http
+@inject IJSRuntime js
+@using System.IO
+@using System.Text.Json
+@using System.Collections.Generic;
+@using TestTask.Shared
+@using TestTask.Shared.Pagination
+@using ChartJs.Blazor.BarChart
+@inject NavigationManager NavigationManager
+
+@if (parcedLinks == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+     <Pagination TotaPagesQuantity="totalPageQuantity" CurrentPage="currentPage" Radius="2"
+        SelectedPage="SelectedPage">
+    </Pagination>
+    <Chart Config="_barconfig"></Chart>
+    <div class="row">
+    <div class="col-sm-2"></div>
+
+    <table class="table col-sm-8 m-sm-3 align-content-center" >
+        <thead >
+            <tr class="text-center">
+                <th>Links</th>
+                <th>Time</th>
+            </tr>
+            <tr class="text-center">
+                <th style ="width: 500px">Max time: @parcedLinks.Max(x=>x.Time)</th>
+                <th style ="width: 200px">Min time: @parcedLinks.Min(x=>x.Time)</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+           @foreach (var parcedLink in parcedLinks)
+           {
+                <tr class="text-center" >
+
+                    <td style="position:relative; top:7px;">@parcedLink.Name</td>
+                    <td style="position:relative; top:7px;">@parcedLink.Time</td>
+                </tr>
+           }
+
+        </tbody>
+    </table>
+    
+    <div class="col-sm-2"></div>
+    </div>
+    <Pagination TotaPagesQuantity="totalPageQuantity" CurrentPage="currentPage" Radius="2"
+        SelectedPage="SelectedPage">
+    </Pagination> 
+    <button class="btn btn-outline-secondary" style="position:relative; left:50px; width:100px; margin-top:50px; margin-bottom:100px;" @onclick="( () => NavigateToBack() )">Back</button>
+   
+    
+
+}
+
+@code {
+
+    [Parameter]
+    public int Id { get; set; }
+
+    private int totalPageQuantity = 10;
+    private int currentPage = 1;
+
+    List<TestTask.Shared.ModelsDb.ParcedLink> parcedLinks;
+    private BarConfig _barconfig;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CreateBarConfig();
+        await LoadParcedLinks();
+        Console.WriteLine("totalPageQuantity : " + totalPageQuantity);
+    }
+    private void CreateBarConfig()
+    {
+        _barconfig = new BarConfig
+                {
+                    Options = new BarOptions
+                    {
+                        Responsive = true,
+                        Title = new OptionsTitle
+                        {
+                            Display = true,
+                            FontColor = "Black",
+                            FontSize = 12,
+                        },
+                        
+
+                    }
+
+                };
+    }
+    private void SetConfigureBarConfig()
+    {
+        if (parcedLinks != null)
+        {
+            _barconfig.Data.Labels.Clear();
+            _barconfig.Data.Datasets.Clear();
+            Console.WriteLine("start");
+            foreach (var parcedLink in parcedLinks)
+            {
+                _barconfig.Data.Labels.Add(parcedLink.Name);
+            }
+            Console.WriteLine("after foreach");
+            var times = parcedLinks.Select(x => x.Time).ToArray();
+            BarDataset<double> dataset = new BarDataset<double>(times)
+                {
+                    BackgroundColor = new[]
+                        {
+                    ColorUtil.ColorHexString(255, 99, 132), // Slice 1 aka "Red"
+                    ColorUtil.ColorHexString(255, 205, 86), // Slice 2 aka "Yellow"
+                    ColorUtil.ColorHexString(75, 192, 192), // Slice 3 aka "Green"
+                    ColorUtil.ColorHexString(54, 162, 235), // Slice 4 aka "Blue"
+                    ColorUtil.ColorHexString(112, 11, 213),
+                    ColorUtil.ColorHexString(255, 99, 132), // Slice 1 aka "Red"
+                    ColorUtil.ColorHexString(255, 205, 86), // Slice 2 aka "Yellow"
+                    ColorUtil.ColorHexString(75, 192, 192), // Slice 3 aka "Green"
+                    ColorUtil.ColorHexString(54, 162, 235), // Slice 4 aka "Blue"
+                    ColorUtil.ColorHexString(112, 11, 213),
+                }
+                };
+            Console.WriteLine("after BarDataset");
+            _barconfig.Data.Datasets.Add(dataset);
+            Console.WriteLine("end");
+        }
+        else
+        {
+             _barconfig = new BarConfig
+            {
+                Options = new BarOptions
+                {
+                    Responsive = true,
+                    Title = new OptionsTitle
+                    {
+                        Display = false,
+                        Text = "My Text",
+                        FontColor = "Black",
+                        FontSize = 12,
+
+                    }
+                    
+                }
+
+            };
+
+            _barconfig.Data.Labels.Add("waiting");
+
+            BarDataset<int> dataset = new BarDataset<int>(new[] { 100})
+                {
+                    BackgroundColor = new[]
+                    {
+                        ColorUtil.ColorHexString(255, 99, 132), // Slice 1 aka "Red"
+                    }
+                };
+            _barconfig.Data.Datasets.Add(dataset);
+        }
+
+    }
+
+    private async Task SelectedPage(int page)
+    {
+        Console.WriteLine("before : " + page);
+        currentPage = page;
+        await LoadParcedLinks(page);
+    }
+
+    async Task LoadParcedLinks(int page = 1, int quantityPerPage = 10)
+    {
+        Console.WriteLine("after : " + page);
+        var httpResponse = await http.GetAsync($"ParcerXml?Id={Id}&Page={currentPage}&PageSize={quantityPerPage}");
+        if (httpResponse.IsSuccessStatusCode)
+        {
+            totalPageQuantity = int.Parse(httpResponse.Headers.GetValues("pagesQuantity").FirstOrDefault());
+            var responseString = await httpResponse.Content.ReadAsStringAsync();
+            parcedLinks = JsonSerializer.Deserialize<List<TestTask.Shared.ModelsDb.ParcedLink>>(responseString,
+                new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+            
+            //ConfigureBarConfig();
+            SetConfigureBarConfig();
+        }
+        else
+            parcedLinks = null;
+       
+        //parcedLinks = await repository.GetLinkByIdAsync(request);
+    }
+
+    void NavigateToBack() => NavigationManager.NavigateTo($"");
+
+}

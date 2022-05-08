@@ -23,14 +23,16 @@ namespace ParcerLibrarry
                 wc.Encoding = Encoding.UTF8;
                 return await wc.DownloadStringTaskAsync(link);
             }
-            catch (ArgumentNullException ex)
+            catch (ArgumentNullException)
             {
-                
                 return null;
             }
-            catch (WebException ex)
+            catch (WebException)
             {
-                
+                return null;
+            }
+            catch (Exception)
+            {
                 return null;
             }
 
