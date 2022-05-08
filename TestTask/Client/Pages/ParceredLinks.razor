@@ -1,5 +1,10 @@
-﻿@page "/parcer/xml"
+﻿@page "/"
+@using TestTask.Client.Repositories
 @using TestTask.Shared
+@inject HttpClient http
+@inject IJSRuntime js
+@using System.IO
+@using System.Text.Json
 @inject IParcerXmlClientRepository repository
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
@@ -12,20 +17,44 @@
         
         <div class="col-sm-6">
             <label for="link">Enter Link</label>
-            <InputText id="link" class="form-control" @bind-Value="linkModel.Link" />
+            <InputText id="link" class="form-control " @bind-Value="linkModel.Link" />
             <ValidationMessage For="@( () => linkModel.Link )" />
+            @switch (parsingState)
+            {
+                case ParsingState.InProcces:
+                    <label class="text-secondary" for="link">In Procces</label>
+                    break;
+                case ParsingState.Error:
+                    <label class="text-danger" for="link">Error parcing</label>
+                    break;
+                case ParsingState.Success:
+                    <label class="text-success" for="link">Successful parcing</label>
+                    break;
+            }
         </div>
     </div>
-    <button type="submit" class="btn btn-outline-primary @disableButton">Submit</button>
+    @if(disableButton)
+    {
+        <button type="submit" disabled class="btn btn-outline-primary disabled">Submit</button>
+    }
+    else
+    {
+        <button type="submit" class="btn btn-outline-primary">Submit</button>
+    }
+
 </EditForm>
 
 
 
-<h3 class="col-sm-8 text-center">Parcered Links From Bd</h3>
-    <table class="table col-sm-8 m-3">
+
+<h3 style="margin-top:50px;" class="col-sm-12 text-center">Parcered Links From Bd</h3>
+    <table class="table col-sm-12 m-3 align-content-center">
         <thead>
             <tr class="text-center">
-                <th>Links</th>
+                <th>Date Of Parce</th>
+                <th>Link</th>
+                <th>Min Time Parce</th>
+                <th>Max Time Parce</th>
                 <th>More Info</th>
             </tr>
         </thead>
@@ -43,8 +72,10 @@
             foreach (var link in links)
             {
                <tr class="text-center" >
-
+                    <td style="position:relative; top:7px;">@link.DateOfParce</td>
                     <td style="position:relative; top:7px;">@link.Link</td>
+                    <td style="position:relative; top:7px;">@link.MinTimeParce</td>
+                    <td style="position:relative; top:7px;">@link.MaxTimeParce</td>
                     <td> 
                         <button class="btn btn-outline-secondary " value="@link.Id" @onclick="( () => ShowParcedLink(link.Id) )">Show</button>
                     </td>
@@ -53,43 +84,75 @@
         }
         </tbody>
     </table>
+    @if(totalPageQuantity > 1)
+{
+    <Pagination TotaPagesQuantity="totalPageQuantity" CurrentPage="currentPage" Radius="2"
+        SelectedPage="SelectedPage">
+</Pagination> 
 
+}
 @code {
-    private List<LinkModel> links;
+    enum ParsingState
+    {
+        Nothing,
+        InProcces,
+        Error,
+        Success
+    }
+    private List<LinkResponseModel> links;
     private LinkModel linkModel = new LinkModel();
 
-    private string disableButton = string.Empty;
+    private ParsingState parsingState = ParsingState.Nothing;
+    private bool disableButton = false;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadLinksAsync();
+    private int totalPageQuantity = 1;//10
+    private int currentPage = 1;
+
+    protected override async Task OnInitializedAsync() => await LoadLinksAsync();
+
+    protected async Task LoadLinksAsync(int page = 1, int quantityPerPage = 5) 
+    { 
+        var httpResponse = await http.GetAsync($"ParcerXml/links?Page={currentPage}&PageSize={quantityPerPage}");
+        if (httpResponse.IsSuccessStatusCode)
+        {
+            totalPageQuantity = int.Parse(httpResponse.Headers.GetValues("pagesQuantity").FirstOrDefault());
+            var responseString = await httpResponse.Content.ReadAsStringAsync();
+            links =  repository.LinksDeserialize(responseString);
+        }
+        else
+            links = null;
     }
 
-    protected async Task LoadLinksAsync()
+    private async Task SelectedPage(int page)
     {
-        links = await repository.GetAllLinksAsync();
+        currentPage = page;
+        await LoadLinksAsync(page);
     }
 
+    void ShowParcedLink(int id) => NavigationManager.NavigateTo($"{id}");
 
-    async Task SubmitForm()
+    protected async Task SubmitForm()
     {
         Console.WriteLine(linkModel.Link);
-        disableButton = "disabled";
+
+        disableButton = true;
+        parsingState = ParsingState.InProcces;
         var result = await repository.Parce(linkModel);
+
         linkModel.Link = string.Empty;
         
         if (result)
-            await JsRuntime.InvokeVoidAsync("alert", "Success"); // Alert
+             parsingState = ParsingState.Success;
 
         else
-            await JsRuntime.InvokeVoidAsync("alert", "Error"); // Alert
+             parsingState = ParsingState.Error;
       
-        disableButton = string.Empty;
+        disableButton = false;
         await LoadLinksAsync();
-
+        
         
     }
 
-    void ShowParcedLink(int id) => NavigationManager.NavigateTo($"parcer/xml/{id}");
+    
 
 }

@@ -16,4 +16,3 @@ namespace TestTask.Shared
         public string Link { get; set; }
     }
 }
- 

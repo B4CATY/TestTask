@@ -9,7 +9,7 @@ namespace TestTask.Client.Repositories
     public interface IParcerXmlClientRepository
     {
         Task<List<ParcedLink>> GetLinkByIdAsync(PaginationDTO model);
-        Task<List<LinkModel>> GetAllLinksAsync();
+        List<LinkResponseModel> LinksDeserialize(string responseString);
         Task<bool> Parce(LinkModel model);
 
     }
