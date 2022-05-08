@@ -11,15 +11,19 @@
 @using ChartJs.Blazor.BarChart
 @inject NavigationManager NavigationManager
 
-@if (parcedLinks == null)
+@if (_parcedLinks == null)
 {
     <p><em>Loading...</em></p>
 }
 else
 {
-     <Pagination TotaPagesQuantity="totalPageQuantity" CurrentPage="currentPage" Radius="2"
-        SelectedPage="SelectedPage">
-    </Pagination>
+    @if(_totalPageQuantity > 1)
+    {
+      <Pagination TotaPagesQuantity="_totalPageQuantity" CurrentPage="_currentPage" Radius="2"
+          SelectedPage="SelectedPage">
+      </Pagination> 
+
+    }
     <Chart Config="_barconfig"></Chart>
     <div class="row">
     <div class="col-sm-2"></div>
@@ -31,13 +35,13 @@ else
                 <th>Time</th>
             </tr>
             <tr class="text-center">
-                <th style ="width: 500px">Max time: @parcedLinks.Max(x=>x.Time)</th>
-                <th style ="width: 200px">Min time: @parcedLinks.Min(x=>x.Time)</th>
+                <th style ="width: 500px">Max time: @_parcedLinks.Max(x=>x.Time)</th>
+                <th style ="width: 200px">Min time: @_parcedLinks.Min(x=>x.Time)</th>
             </tr>
         </thead>
         <tbody>
             
-           @foreach (var parcedLink in parcedLinks)
+           @foreach (var parcedLink in _parcedLinks)
            {
                 <tr class="text-center" >
 
@@ -51,9 +55,13 @@ else
     
     <div class="col-sm-2"></div>
     </div>
-    <Pagination TotaPagesQuantity="totalPageQuantity" CurrentPage="currentPage" Radius="2"
-        SelectedPage="SelectedPage">
-    </Pagination> 
+    @if(_totalPageQuantity > 1)
+    {
+       <Pagination TotaPagesQuantity="_totalPageQuantity" CurrentPage="_currentPage" Radius="2"
+            SelectedPage="SelectedPage">
+       </Pagination> 
+
+    }
     <button class="btn btn-outline-secondary" style="position:relative; left:50px; width:100px; margin-top:50px; margin-bottom:100px;" @onclick="( () => NavigateToBack() )">Back</button>
    
     
@@ -65,17 +73,17 @@ else
     [Parameter]
     public int Id { get; set; }
 
-    private int totalPageQuantity = 10;
-    private int currentPage = 1;
+    private int _totalPageQuantity = 10;
+    private int _currentPage = 1;
 
-    List<TestTask.Shared.ModelsDb.ParcedLink> parcedLinks;
+    List<TestTask.Shared.ModelsDb.ParcedLink> _parcedLinks;
     private BarConfig _barconfig;
 
     protected override async Task OnInitializedAsync()
     {
         CreateBarConfig();
         await LoadParcedLinks();
-        Console.WriteLine("totalPageQuantity : " + totalPageQuantity);
+        Console.WriteLine("totalPageQuantity : " + _totalPageQuantity);
     }
     private void CreateBarConfig()
     {
@@ -98,17 +106,17 @@ else
     }
     private void SetConfigureBarConfig()
     {
-        if (parcedLinks != null)
+        if (_parcedLinks != null)
         {
             _barconfig.Data.Labels.Clear();
             _barconfig.Data.Datasets.Clear();
             Console.WriteLine("start");
-            foreach (var parcedLink in parcedLinks)
+            foreach (var parcedLink in _parcedLinks)
             {
                 _barconfig.Data.Labels.Add(parcedLink.Name);
             }
             Console.WriteLine("after foreach");
-            var times = parcedLinks.Select(x => x.Time).ToArray();
+            var times = _parcedLinks.Select(x => x.Time).ToArray();
             BarDataset<double> dataset = new BarDataset<double>(times)
                 {
                     BackgroundColor = new[]
@@ -166,26 +174,26 @@ else
     private async Task SelectedPage(int page)
     {
         Console.WriteLine("before : " + page);
-        currentPage = page;
-        await LoadParcedLinks(page);
+        _currentPage = page;
+        await LoadParcedLinks();
     }
 
-    async Task LoadParcedLinks(int page = 1, int quantityPerPage = 10)
+    async Task LoadParcedLinks(int quantityPerPage = 10)
     {
-        Console.WriteLine("after : " + page);
-        var httpResponse = await http.GetAsync($"ParcerXml?Id={Id}&Page={currentPage}&PageSize={quantityPerPage}");
+        Console.WriteLine("after : " + _currentPage);
+        var httpResponse = await http.GetAsync($"ParcerXml?Id={Id}&Page={_currentPage}&PageSize={quantityPerPage}");
         if (httpResponse.IsSuccessStatusCode)
         {
-            totalPageQuantity = int.Parse(httpResponse.Headers.GetValues("pagesQuantity").FirstOrDefault());
+            _totalPageQuantity = int.Parse(httpResponse.Headers.GetValues("pagesQuantity").FirstOrDefault());
             var responseString = await httpResponse.Content.ReadAsStringAsync();
-            parcedLinks = JsonSerializer.Deserialize<List<TestTask.Shared.ModelsDb.ParcedLink>>(responseString,
+            _parcedLinks = JsonSerializer.Deserialize<List<TestTask.Shared.ModelsDb.ParcedLink>>(responseString,
                 new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
             
             //ConfigureBarConfig();
             SetConfigureBarConfig();
         }
         else
-            parcedLinks = null;
+            _parcedLinks = null;
        
         //parcedLinks = await repository.GetLinkByIdAsync(request);
     }
