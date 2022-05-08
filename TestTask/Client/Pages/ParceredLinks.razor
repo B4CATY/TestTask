@@ -19,7 +19,7 @@
             <label for="link">Enter Link</label>
             <InputText id="link" class="form-control " @bind-Value="linkModel.Link" />
             <ValidationMessage For="@( () => linkModel.Link )" />
-            @switch (parsingState)
+            @switch (_parsingState)
             {
                 case ParsingState.InProcces:
                     <label class="text-secondary" for="link">In Procces</label>
@@ -33,7 +33,7 @@
             }
         </div>
     </div>
-    @if(disableButton)
+    @if(_disableButton)
     {
         <button type="submit" disabled class="btn btn-outline-primary disabled">Submit</button>
     }
@@ -60,7 +60,7 @@
         </thead>
         <tbody>
 
-        @if(links == null)
+        @if(_links == null)
         {
             <tr class="text-center" >
 
@@ -68,8 +68,9 @@
                 </tr>
         }
 
-        else{
-            foreach (var link in links)
+        else
+        {
+            foreach (var link in _links)
             {
                <tr class="text-center" >
                     <td style="position:relative; top:7px;">@link.DateOfParce</td>
@@ -84,13 +85,13 @@
         }
         </tbody>
     </table>
-    @if(totalPageQuantity > 1)
-{
-    <Pagination TotaPagesQuantity="totalPageQuantity" CurrentPage="currentPage" Radius="2"
-        SelectedPage="SelectedPage">
-</Pagination> 
+    @if(_totalPageQuantity > 1)
+    {
+        <Pagination TotaPagesQuantity="_totalPageQuantity" CurrentPage="_currentPage" Radius="2"
+            SelectedPage="SelectedPage">
+        </Pagination> 
 
-}
+    }
 @code {
     enum ParsingState
     {
@@ -99,33 +100,35 @@
         Error,
         Success
     }
-    private List<LinkResponseModel> links;
+
+
+    private List<LinkResponseModel> _links;
     private LinkModel linkModel = new LinkModel();
 
-    private ParsingState parsingState = ParsingState.Nothing;
-    private bool disableButton = false;
+    private ParsingState _parsingState = ParsingState.Nothing;
+    private bool _disableButton = false;
 
-    private int totalPageQuantity = 1;//10
-    private int currentPage = 1;
+    private int _totalPageQuantity = 1;//10
+    private int _currentPage = 1;
 
     protected override async Task OnInitializedAsync() => await LoadLinksAsync();
 
     protected async Task LoadLinksAsync(int page = 1, int quantityPerPage = 5) 
     { 
-        var httpResponse = await http.GetAsync($"ParcerXml/links?Page={currentPage}&PageSize={quantityPerPage}");
+        var httpResponse = await http.GetAsync($"ParcerXml/links?Page={_currentPage}&PageSize={quantityPerPage}");
         if (httpResponse.IsSuccessStatusCode)
         {
-            totalPageQuantity = int.Parse(httpResponse.Headers.GetValues("pagesQuantity").FirstOrDefault());
+            _totalPageQuantity = int.Parse(httpResponse.Headers.GetValues("pagesQuantity").FirstOrDefault());
             var responseString = await httpResponse.Content.ReadAsStringAsync();
-            links =  repository.LinksDeserialize(responseString);
+            _links =  repository.LinksDeserialize(responseString);
         }
         else
-            links = null;
+            _links = null;
     }
 
     private async Task SelectedPage(int page)
     {
-        currentPage = page;
+        _currentPage = page;
         await LoadLinksAsync(page);
     }
 
@@ -135,19 +138,19 @@
     {
         Console.WriteLine(linkModel.Link);
 
-        disableButton = true;
-        parsingState = ParsingState.InProcces;
+        _disableButton = true;
+        _parsingState = ParsingState.InProcces;
         var result = await repository.Parce(linkModel);
 
         linkModel.Link = string.Empty;
         
         if (result)
-             parsingState = ParsingState.Success;
+             _parsingState = ParsingState.Success;
 
         else
-             parsingState = ParsingState.Error;
+             _parsingState = ParsingState.Error;
       
-        disableButton = false;
+        _disableButton = false;
         await LoadLinksAsync();
         
         

@@ -17,12 +17,8 @@ namespace TestTask.Server.Controllers
     public class ParcerXmlController : ControllerBase
     {
         private readonly IParcerXmlRepository _parcerXmlRepository;
-        private readonly ParcerContext _context;
-        public ParcerXmlController(IParcerXmlRepository parcerXmlRepository, ParcerContext context)
-        {
-            _parcerXmlRepository = parcerXmlRepository;
-            _context = context;
-        }
+        public ParcerXmlController(IParcerXmlRepository parcerXmlRepository, ParcerContext context) 
+            => _parcerXmlRepository = parcerXmlRepository;
 
         [HttpGet]
         [Route("links")]
@@ -37,27 +33,14 @@ namespace TestTask.Server.Controllers
                 return BadRequest();
             try
             {
-                var queryable = _context.Links
-                    .Include(x => x.ParcedLinks)
-                    .Select(x => new LinkResponseModel
-                    {
-                        MaxTimeParce = x.ParcedLinks.Max(x => x.Time),
-                        MinTimeParce = x.ParcedLinks.Min(x => x.Time),
-                        Id = x.Id,
-                        DateOfParce = x.DateOfParce,
-                        Link = x.Name,
-                    })
-                    .OrderByDescending(x => x.DateOfParce)
-                    .AsQueryable();
+                var queryable = _parcerXmlRepository.GetLinks();
 
-
-
-                /*var links = await _parcerXmlRepository.GetByIdAsync(model);*/
                 if (queryable == null)
                     return NotFound();
 
                 await HttpContext.InsertPaginationParametrInResponse(queryable, model.PageSize);
                 var resultLinks = await queryable.Paginate(model).ToListAsync();
+               
                 return Ok(resultLinks);
 
             }
@@ -80,11 +63,8 @@ namespace TestTask.Server.Controllers
                 return BadRequest();
             try
             {
-                var queryable = _context.ParcedLinks.Select(x => x).Where(x => x.LinkId == model.Id).AsQueryable();
+                var queryable = _parcerXmlRepository.GetParcedLinksById(model.Id);
 
-
-
-                /*var links = await _parcerXmlRepository.GetByIdAsync(model);*/
                 if (queryable == null)
                     return NotFound();
 

@@ -13,8 +13,8 @@ namespace TestTask.Server.Repositories
     {
         Task<List<LinkTime>> ParceAsync(string url);
         Task<bool> CreateAsync(string url, List<LinkTime> linkTimes);
-        List<LinkModel> GetAsync();
+        IQueryable<LinkResponseModel> GetLinks();
         /*Task<List<ParcedLink>> GetByIdAsync(PaginationDTO model);*/
-        IQueryable<ParcedLink> GetById(PaginationDTO model);
+        IQueryable<ParcedLink> GetParcedLinksById(int id);
     }
 }

@@ -14,22 +14,10 @@ namespace TestTask.Server.Repositories
     public class ParcerXmlRepository : IParcerXmlRepository
     {
         private readonly ParcerContext _context;
-        public ParcerXmlRepository(ParcerContext context)
-        {
-            _context = context;
-        }
+        public ParcerXmlRepository(ParcerContext context) => _context = context;
+
         public async Task<bool> CreateAsync(string url, List<LinkTime> linkTimes)
         {
-            /*var link = await _context.Links.FirstOrDefaultAsync(x => x.Name == url);
-            if (link != null)
-            {
-                _context.Links.Remove(link);
-                await _context.SaveChangesAsync();
-            }
-
-            var parcedLinks = linkTimes.Select(x => new ParcedLink { Name = x.Link, Time = x.Time, Link = link }).ToList();
-            link = new Link { Name = url, ParcedLinks = parcedLinks };
-            _context.Links.Add(link);*/
             var link = new Link { Name = url };
             var parcedLinks = linkTimes.Select(x => new ParcedLink { Name = x.Link, Time = x.Time, Link = link }).ToList();
 
@@ -38,40 +26,31 @@ namespace TestTask.Server.Repositories
             return true;
         }
 
-        public List<LinkModel> GetAsync()
+        public IQueryable<LinkResponseModel> GetLinks()
         {
-            var links = _context.Links.Select(x => new LinkModel { Link = x.Name, Id = x.Id }).ToList();
+            var links = _context.Links
+                     .Include(x => x.ParcedLinks)
+                     .Select(x => new LinkResponseModel
+                     {
+                         MaxTimeParce = x.ParcedLinks.Max(x => x.Time),
+                         MinTimeParce = x.ParcedLinks.Min(x => x.Time),
+                         Id = x.Id,
+                         DateOfParce = x.DateOfParce,
+                         Link = x.Name,
+                     })
+                     .OrderByDescending(x => x.DateOfParce)
+                     .AsQueryable();
             return links;
         }
 
-        public IQueryable<ParcedLink> GetById(PaginationDTO model)
+        public IQueryable<ParcedLink> GetParcedLinksById(int id)
         {
-            //var allLinksById = await _context.Links.Include(x => x.ParcedLinks).Where(x=> x.Id == model.Id).FirstOrDefaultAsync();
-            //num 1
-            //size 15
-            //take 15
-            /*int skipedLinks = (model.Page - 1) * model.PageSize;*/
-            var queryable = _context.ParcedLinks.Select(x => x).Where(x => x.LinkId == model.Id).AsQueryable();
+            var queryable = _context.ParcedLinks.Select(x => x).Where(x => x.LinkId == id).OrderBy(x => x.Time).AsQueryable();
 
-
-            /* var parcedLinksByPage = await _context.ParcedLinks
-                 .Select(x => x)
-                 .Where(x => x.LinkId == model.Id)
-                 .Skip(skipedLinks)
-                 .Take(model.PageSize)
-                 .ToListAsync();*/
-
-            /*if (parcedLinksByPage.Count == 0)
-                return null; */
-            if (queryable.Count() == 0)
+            if (!queryable.Any())
                 return null;
 
             return queryable;
-
-            /*if (allLinksById == null*//* || skipedLinks >= allLinksById.ParcedLinks.Count*//*)
-                return null;*/
-
-
         }
 
         public async Task<List<LinkTime>> ParceAsync(string url)

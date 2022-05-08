@@ -26,16 +26,6 @@ namespace TestTask.Client.Repositories
             //
         }
 
-        public async Task<List<ParcedLink>> GetLinkByIdAsync(PaginationDTO model)
-        {
-            var result = await _httpClient.GetFromJsonAsync<List<ParcedLink>>($"ParcerXml?Id={model.Id}&PageNum={model.Page}&PageSize={model.PageSize}");
-
-            if (result == null || result.Count == 0)
-                return null;
-
-            return result;
-        }
-
         public async Task<bool> Parce(LinkModel model)
         {
             var result = await _httpClient.PostAsJsonAsync("ParcerXml", model);
